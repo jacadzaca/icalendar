@@ -1,6 +1,7 @@
-"""Tests checking that parsing works"""
+"""Tests checking that parsing/marshalling icals works"""
 import pytest
 
+from icalendar import vRecur
 from icalendar.parser import Contentline, Parameters
 
 @pytest.mark.parametrize('raw_content_line, expected_output', [
@@ -13,3 +14,12 @@ from icalendar.parser import Contentline, Parameters
 ])
 def test_content_lines_parsed_properly(raw_content_line, expected_output):
     assert Contentline.from_ical(raw_content_line).parts() == expected_output
+
+def test_issue_157_removes_trailing_semicolon(events):
+    """Issue #157 - Recurring rules and trailing semicolons
+    see https://github.com/collective/icalendar/pull/157"""
+    recur = events.issue_157_removes_trailing_semicolon.decoded("RRULE")
+    assert isinstance(recur, vRecur)
+    assert recur.to_ical() == b'FREQ=YEARLY;BYDAY=1SU;BYMONTH=11'
+
+
