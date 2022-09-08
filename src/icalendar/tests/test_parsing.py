@@ -4,6 +4,13 @@ import pytest
 from icalendar import Calendar, vRecur
 from icalendar.parser import Contentline, Parameters
 
+def test_issue_70_decode_rrule_attribute_error(events):
+    # Issue #70 - e.decode("RRULE") causes Attribute Error
+    # see https://github.com/collective/icalendar/issues/70
+    recur = events.issue_70_rrule_causes_attribute_error.decoded('RRULE')
+    assert isinstance(recur, vRecur)
+    assert recur.to_ical() == b'FREQ=WEEKLY;UNTIL=20070619T225959;INTERVAL=1'
+
 @pytest.mark.parametrize('raw_content_line, expected_output', [
     # Issue #142 - Multivalued parameters. This is needed for VCard 3.0.
     # see https://github.com/collective/icalendar/pull/142
