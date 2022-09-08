@@ -6,6 +6,12 @@ import datetime
 import icalendar
 import os
 import pytz
+from dateutil import tz
+
+try:
+    import zoneinfo
+except ModuleNotFoundError:
+    from backports import zoneinfo
 
 
 class TestEncoding(unittest.TestCase):
@@ -105,4 +111,31 @@ def test_issue_64_events_summary_unicoded(events, summary, event_name):
     event = icalendar.Event()
     event.add("summary", summary)
     assert event.to_ical() == getattr(events, event_name).raw_ics
+
+@pytest.mark.parametrize('timezone', [
+    pytz.timezone('America/Sao_Paulo'),
+    zoneinfo.ZoneInfo('America/Sao_Paulo'),
+    pytz.timezone('America/Sao_Paulo'),
+    tz.gettz('America/Sao_Paulo')
+])
+def test_issue_237_parses_event_with_non_ascii_tzid(events, timezone):
+    """Issue #237 - Fail to parse timezone with non-ascii TZID
+    see https://github.com/collective/icalendar/issues/237
+    """
+    start = events.issue_237_fail_to_parse_timezone_with_non_ascii_tzid.decoded('DTSTART')
+    expected = datetime.datetime(2017, 5, 11, 13, 30).astimezone(timezone)
+    assert start == expected
+
+def test_issue_237_parses_timezone_with_non_ascii_tzid(timezones):
+    """Issue #237 - Fail to parse timezone with non-ascii TZID
+    see https://github.com/collective/icalendar/issues/237
+    """
+    assert timezones.issue_237_brazilia_standard['tzid'] == '(UTC-03:00) Brasília'
+
+@pytest.mark.parametrize('timezone_name', ['standard', 'daylight'])
+def test_issue_237_parses_timezone_with_non_ascii_tzname(timezones, timezone_name):
+    """Issue #237 - Fail to parse timezone with non-ascii TZID
+    see https://github.com/collective/icalendar/issues/237
+    """
+    assert timezones.issue_237_brazilia_standard.walk(timezone_name)[0]['TZNAME'] == f'Brasília {timezone_name}'
 
