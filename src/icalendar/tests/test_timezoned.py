@@ -10,78 +10,18 @@ try:
 except:
     from backports import zoneinfo
 
+def test_from_ical_decodes_timezones(calendars, in_timezone):
+    assert calendars.timezoned['PRODID'] == '-//Plone.org//NONSGML plone.app.event//EN'
+    timezones = calendars.timezoned.walk('VTIMEZONE')
+    assert len(timezones) == 1
+    assert timezones[0]['tzid'].to_ical() == b'Europe/Vienna'
+    assert timezones[0].walk('STANDARD')[0].decoded('TZOFFSETFROM') == datetime.timedelta(0, 7200)
+    event = calendars.timezoned.walk('VEVENT')[0]
+    assert event.decoded('DTSTART') == in_timezone(datetime.datetime(2012, 2, 13, 10, 0, 0), 'Europe/Vienna')
+    assert event.decoded('DTSTAMP') == in_timezone(datetime.datetime(2010, 10, 10, 9, 10, 10), 'UTC')
+
+
 class TestTimezoned(unittest.TestCase):
-
-    def test_create_from_ical_zoneinfo(self):
-        directory = os.path.dirname(__file__)
-        with open(os.path.join(directory, 'timezoned.ics'), 'rb') as fp:
-            data = fp.read()
-        cal = icalendar.Calendar.from_ical(data)
-
-        self.assertEqual(
-            cal['prodid'].to_ical(),
-            b"-//Plone.org//NONSGML plone.app.event//EN"
-        )
-
-        timezones = cal.walk('VTIMEZONE')
-        self.assertEqual(len(timezones), 1)
-
-        tz = timezones[0]
-        self.assertEqual(tz['tzid'].to_ical(), b"Europe/Vienna")
-
-        std = tz.walk('STANDARD')[0]
-        self.assertEqual(
-            std.decoded('TZOFFSETFROM'),
-            datetime.timedelta(0, 7200)
-        )
-
-        ev1 = cal.walk('VEVENT')[0]
-        self.assertEqual(
-            ev1.decoded('DTSTART'),
-            datetime.datetime(2012, 2, 13, 10, 0, 0, tzinfo=zoneinfo.ZoneInfo('Europe/Vienna'))
-        )
-        self.assertEqual(
-            ev1.decoded('DTSTAMP'),
-            datetime.datetime(2010, 10, 10, 9, 10, 10, tzinfo=zoneinfo.ZoneInfo('UTC'))
-        )
-
-    def test_create_from_ical_pytz(self):
-        directory = os.path.dirname(__file__)
-        with open(os.path.join(directory, 'timezoned.ics'), 'rb') as fp:
-            data = fp.read()
-        cal = icalendar.Calendar.from_ical(data)
-
-        self.assertEqual(
-            cal['prodid'].to_ical(),
-            b"-//Plone.org//NONSGML plone.app.event//EN"
-        )
-
-        timezones = cal.walk('VTIMEZONE')
-        self.assertEqual(len(timezones), 1)
-
-        tz = timezones[0]
-        self.assertEqual(tz['tzid'].to_ical(), b"Europe/Vienna")
-
-        std = tz.walk('STANDARD')[0]
-        self.assertEqual(
-            std.decoded('TZOFFSETFROM'),
-            datetime.timedelta(0, 7200)
-        )
-
-        ev1 = cal.walk('VEVENT')[0]
-        self.assertEqual(
-            ev1.decoded('DTSTART'),
-            pytz.timezone('Europe/Vienna').localize(
-                datetime.datetime(2012, 2, 13, 10, 0, 0)
-            )
-        )
-        self.assertEqual(
-            ev1.decoded('DTSTAMP'),
-            pytz.utc.localize(
-                datetime.datetime(2010, 10, 10, 9, 10, 10)
-            )
-        )
-
     def test_create_to_ical_pytz(self):
         cal = icalendar.Calendar()
 
