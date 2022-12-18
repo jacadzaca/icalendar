@@ -1,4 +1,5 @@
 import unittest
+import pytest
 
 import datetime
 import dateutil.parser
@@ -81,6 +82,18 @@ def test_to_ical_encodes_timezones(calendars, in_timezone):
     event.add('url', 'https://plone.org')
     cal.add_component(event)
     cal.to_ical().decode('utf-8') == calendars.timezone_encoding.raw_ics
+
+@pytest.mark.parametrize('calendar_name', [
+    'timezone_same_start',
+    'timezone_same_start_and_offset',
+])
+def test_same_start_date(calendars, calendar_name):
+    """testing if we can handle VTIMEZONEs whose different components
+    have the same start DTIMEs."""
+    calendar = getattr(calendars, calendar_name)
+    dt = calendar.subcomponents[1]['DTSTART'].dt
+    assert dt.strftime('%c') == 'Fri Feb 24 12:00:00 2017'
+
 
 class TestTimezoned(unittest.TestCase):
     def test_tzinfo_dateutil(self):
@@ -272,26 +285,6 @@ class TestTimezoneCreation(unittest.TestCase):
             ),
             tz._tzinfos.keys()
         )
-
-    def test_same_start_date(self):
-        """testing if we can handle VTIMEZONEs whose different components
-        have the same start DTIMEs."""
-        directory = os.path.dirname(__file__)
-        with open(os.path.join(directory, 'timezone_same_start.ics'), 'rb') as fp:
-            data = fp.read()
-        cal = icalendar.Calendar.from_ical(data)
-        d = cal.subcomponents[1]['DTSTART'].dt
-        self.assertEqual(d.strftime('%c'), 'Fri Feb 24 12:00:00 2017')
-
-    def test_same_start_date_and_offset(self):
-        """testing if we can handle VTIMEZONEs whose different components
-        have the same DTSTARTs, TZOFFSETFROM, and TZOFFSETTO."""
-        directory = os.path.dirname(__file__)
-        with open(os.path.join(directory, 'timezone_same_start_and_offset.ics'), 'rb') as fp:
-            data = fp.read()
-        cal = icalendar.Calendar.from_ical(data)
-        d = cal.subcomponents[1]['DTSTART'].dt
-        self.assertEqual(d.strftime('%c'), 'Fri Feb 24 12:00:00 2017')
 
     def test_rdate(self):
         """testing if we can handle VTIMEZONEs who only have an RDATE, not RRULE
